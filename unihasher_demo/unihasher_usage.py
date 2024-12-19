@@ -1,5 +1,12 @@
+'''
+NOTE: Installation of pandas library may be required to run this usage code
+if you plan to run the code to check the suitability of our decision tree
+for your dataset.
+'''
+
 from unihasher.unihasher import Unihasher
 from unihasher.hash import Hasher
+import pandas as pd
 
 # Usage of Hasher object
 '''
@@ -50,3 +57,51 @@ is_matching_dtree_reflectedLR = unihash.decision_tree_comp(r'orig.jpg', r'reflec
 print(f"Decision tree approach | orig.jpg VS reflectedLR.jpg: {is_matching_dtree_reflectedLR}")
 
 # Let's test the decision tree approach on a dataset
+DATA_PATH = r'data_people.csv'
+
+data = pd.read_csv(DATA_PATH)
+data = data.drop('filename', axis=1)
+
+tp = 0
+fp = 0
+tn = 0
+fn = 0
+cnt = 0
+
+for row in data.itertuples(index=False):
+    # iterates through each row entry of DataFrame
+    # "row" is a tuple: access via integer indexes
+    # Indexing:
+    # 0 = dhash, 1 = phash, 2 = whash, 3 = nmfhash, 4 = isMatching
+    
+    dhashVal = row[0]
+    phashVal = row[1]
+    whashVal = row[2]
+    nmfhashVal = row[3]
+
+    simDict = {
+        'dhash': dhashVal,
+        'phash': phashVal,
+        'whash': whashVal,
+        'nmfhash': nmfhashVal
+    }
+
+    isMatching = row[4] # True = matching, False = not matching
+
+    # Now we model the classification path of the Decision Tree
+    res = unihash.test_decision_tree_comp(simDict)
+
+    # Check if it is True/False Positive/Negative
+    if res == True:
+        if isMatching == True:
+            tp += 1
+        else:
+            fp += 1
+    else:
+        if isMatching == True:
+            fn += 1
+        else:
+            tn += 1
+
+print("\n\n--- Results of decision tree test ---")
+unihash.evaluate(tp, tn, fp, fn)

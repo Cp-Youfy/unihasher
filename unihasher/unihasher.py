@@ -30,7 +30,6 @@ class Unihasher:
             'nmfhash': nmfhashThresh
         }
 
-
     def single_hash(self, hashType:str, imgPath:str, toStr:bool=True):
         '''
         Hashes image with one hash
@@ -178,14 +177,15 @@ class Unihasher:
         }
 
 
-    def decision_tree_comp(self, imgPath1:str, imgPath2:str) -> bool:
+    def decision_tree_comp(self, imgPath1:str, imgPath2:str, verbose:bool=False) -> bool:
         # modify this to take the similarity as input -- write separate command to generate all hash variant similarities and optionally write to a csv
         '''
         Returns True / False based on the result of the decision tree
-        (True: Matching image)
+        (True: Matching image)\n
         Please modify tree accordingly to any needs or new discoveries
         imgPath1: Path of first image to match
         imgPath2: Path of second image to match
+        verbose: Prints each node dictionary to trace traversal path
 
         NOTE: Thresholds used in tree are fixed, not using self.hashThreshDict! They are optimised through our decision tree construction. Please refer to our Report for the visualisation.
         '''
@@ -199,6 +199,17 @@ class Unihasher:
         except:
             raise Exception("decision_tree_comp: Error in populating simDict")
         
+        return self.test_decision_tree_comp(simDict, verbose)
+    
+    def test_decision_tree_comp(self, simDict:dict, verbose=False):
+        '''
+        Returns True / False based on the result of the decision tree
+        (True: Matching image)\n
+        Use this function if you have similarity metrics to check against the decision tree\n
+        Also acts as a helper function for decision_tree_comp
+        simVals: Dictionary of similarity score e.g. {'dhash': 0, 'phash': 0, 'whash': 0, 'nmfhash': 0}
+        verbose: Prints each node dictionary to trace traversal path
+        '''
         # Decision tree code (tree[0] is root, id indicates index)
         tree = (
             { 'id': 0, 'condition': simDict['dhash'] <= 0.334, 'trueNode': 1, 'falseNode': 3},
@@ -210,7 +221,8 @@ class Unihasher:
         
         currentNode = tree[0]
         # Condition to recursively traverse tree while not encountering a result
-        while type(currentNode) != bool:
+        while True:
+            if verbose: print(currentNode)
             result = currentNode['condition']
             if result:
                 # True
@@ -224,11 +236,9 @@ class Unihasher:
                     currentNode = tree[currentNode['falseNode']]
                 else:
                     return currentNode['falseNode']
-                
-        # Result (True/False for matching)
-        return currentNode
-    
-    def evaluate(tp, tn, fp, fn):
+
+
+    def evaluate(self, tp, tn, fp, fn):
         '''
         Function to check the results if using this library for testing
         '''
@@ -253,6 +263,7 @@ class Unihasher:
         f1_pos = 2*precision_pos*recall_pos/(precision_pos+recall_pos)
         f1_neg = 2*precision_neg*recall_neg/(precision_neg+recall_neg)
 
+        print(f"\n\n--- Results of decision tree test ---")
         print(f"Accuracy: {accuracy}")
         print(f"Precision (Positive): {precision_pos}")
         print(f"Precision (Negative): {precision_neg}")
