@@ -1,0 +1,12 @@
+LICENSE
+README.md
+setup.py
+unihasher/NMF_Hash.py
+unihasher/__init__.py
+unihasher/hash.py
+unihasher/unihasher.py
+unihasher.egg-info/PKG-INFO
+unihasher.egg-info/SOURCES.txt
+unihasher.egg-info/dependency_links.txt
+unihasher.egg-info/requires.txt
+unihasher.egg-info/top_level.txt

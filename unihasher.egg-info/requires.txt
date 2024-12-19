@@ -1,0 +1,4 @@
+imagehash
+pillow
+opencv-python
+setuptools
