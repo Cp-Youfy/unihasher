@@ -1,5 +1,5 @@
 import imagehash
-import NMF_Hash
+from .NMF_Hash import NMFHash
 from PIL import Image
 
 class Hasher:
@@ -8,10 +8,13 @@ class Hasher:
     dhash, phash, whash, nmfhash
     '''
 
-    def __init__(self):
-        pass
+    def __init__(self, imgHashSize:int=16):
+        '''
+        imgHashSize: Size used for normalisation of imagehash'''
+        self.imgHashSize = imgHashSize
+        self.MAX_IMGHASH_SIZE = imgHashSize ** 2
 
-    def dhash(self, imgPath:str, hashSize:int=8):
+    def dhash(self, imgPath:str, hashSize:int=16):
         '''
         Hashes the image using dhash from imagehash library
         imgPath: Path to image
@@ -20,7 +23,7 @@ class Hasher:
         img = Image.open(imgPath)
         return imagehash.dhash(img, hashSize)
 
-    def phash(self, imgPath:str, hashSize:int=8):
+    def phash(self, imgPath:str, hashSize:int=16):
         '''
         Hashes the image using phash from imagehash library
         imgPath: Path to image
@@ -29,7 +32,7 @@ class Hasher:
         img = Image.open(imgPath)
         return imagehash.phash(img, hashSize)
 
-    def whash(self, imgPath:str, hashSize:int=8):
+    def whash(self, imgPath:str, hashSize:int=16):
         '''
         Hashes the image using whash from imagehash library
         imgPath: Path to image
@@ -49,9 +52,9 @@ class Hasher:
             assert self.nmfHashObj.ring == ringNo
         except:
             # Creates / updates the NMF hash object to avoid creating unnecessary duplicate instances of the hash object
-            self.nmfHashObj = NMF_Hash.NMFHash(hashSize, ringNo)
+            self.nmfHashObj = NMFHash(hashSize, ringNo)
 
-        self.nmfHashObj.singleHashCode(imgPath)
+        return self.nmfHashObj.singleHashCode(imgPath)
 
     def hamming(self, h1:imagehash.ImageHash, h2:imagehash.ImageHash):
         '''
@@ -60,7 +63,7 @@ class Hasher:
         h2: ImageHash object (use imagehash.hex_to_hash(hexStr) to convert from stored hex string)
         Returns value in range [0, 1]: the closer to 0, the greater similarity
         '''
-        return h2 - h1
+        return (h2 - h1) / self.MAX_IMGHASH_SIZE
     
     def pearsonCorr(self, h1:str, h2:str):
         '''

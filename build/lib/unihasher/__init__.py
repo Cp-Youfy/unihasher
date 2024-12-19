@@ -1,1 +1,1 @@
-from hash import Hasher
+from .hash import Hasher
