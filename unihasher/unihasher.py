@@ -1,4 +1,4 @@
-from hash import Hasher
+from .hash import Hasher
 import imagehash
 
 # Number of hashes implemented -- change if extending library
@@ -20,6 +20,7 @@ class Unihasher:
         self.imgHashSize = imgHashSize
         self.nmfHashSize = nmfHashSize
         self.nmfHashRings = nmfHashRings
+        self.hasher = Hasher(imgHashSize)
 
     def set_thresholds(self, dhashThresh:float=0.334, phashThresh:float=0.348, whashThresh:float=0.191, nmfhashThresh:float=0.952):
         self.hashThreshDict = {
@@ -40,22 +41,22 @@ class Unihasher:
 
         if hashType == 'dhash':
             if toStr:
-                return str(Hasher.dhash(imgPath, self.imgHashSize))
+                return str(self.hasher.dhash(imgPath, self.imgHashSize))
             
-            return Hasher.dhash(imgPath, self.imgHashSize)
+            return self.hasher.dhash(imgPath, self.imgHashSize)
         
         if hashType == 'phash':
             if toStr:
-                return str(Hasher.dhash(imgPath, self.imgHashSize))
-            return Hasher.phash(imgPath, self.imgHashSize)
+                return str(self.hasher.dhash(imgPath, self.imgHashSize))
+            return self.hasher.phash(imgPath, self.imgHashSize)
 
         if hashType == 'whash':
             if toStr:
-                return str(Hasher.dhash(imgPath, self.imgHashSize))
-            return Hasher.whash(imgPath, self.imgHashSize)
+                return str(self.hasher.dhash(imgPath, self.imgHashSize))
+            return self.hasher.whash(imgPath, self.imgHashSize)
 
         if hashType == 'nmfhash':
-            return Hasher.nmfhash(imgPath, self.nmfHashSize, self.nmfHashRings)
+            return self.hasher.nmfhash(imgPath, self.nmfHashSize, self.nmfHashRings)
         
         raise Exception("single_hash: Invalid hash type provided")
     
@@ -68,13 +69,13 @@ class Unihasher:
         '''
 
         if hashType == 'nmfhash':
-            return Hasher.pearsonCorr(h1, h2)
+            return self.hasher.pearsonCorr(h1, h2)
         
         # imagehash hamming
         h1 = imagehash.hex_to_hash(h1)
         h2 = imagehash.hex_to_hash(h2)
 
-        return Hasher.hamming(h1, h2)
+        return self.hasher.hamming(h1, h2)
 
     def single_hash_comp(self, hashType:str, h1:str, h2:str) -> bool:
         '''
@@ -86,6 +87,12 @@ class Unihasher:
         
         simMetric = self.comp_hashes(hashType, h1, h2)
 
+        # Check for existence of hashThreshDict
+        try:
+            self.hashThreshDict
+        except:
+            raise Exception("Please set thresholds using set_thresholds() first")
+
         try:
             # nmfhash result
             if hashType == 'nmfhash':
@@ -96,24 +103,49 @@ class Unihasher:
         except:
             raise Exception("single_hash_comp: Invalid hash type provided")
         
-    def majority_hash_comp(self, h1:str, h2:str, thresh:int=2) -> bool:
+    def majority_hash_comp(self, imgPath1:str, imgPath2:str, thresh:int=2, verbose:bool=False) -> bool:
         '''
         Returns True if **more than** thresh hashes match. If tie, use dhash result.
         h1: Hash string 1
         h2: Hash string 2 
+        verbose: Prints output of hashes that are matching
         '''
         try:
             assert 0 <= thresh < NUM_HASHES
         except:
             raise Exception("thresh must be within range [0, 4) as there are 4 hashes available.")
 
+        # Check for existence of hashThreshDict
+        try:
+            self.hashThreshDict
+        except:
+            raise Exception("Please set thresholds using set_thresholds() first")
+        
         isMatching = 0
+
+        # Initialise dictionary to store the similarities
+        simDict = self.gen_all_sim(imgPath1, imgPath2)  
+
+        # Checks simDict is populated
+        try:
+            assert len([num for num in simDict.values() if num == -2]) == 0
+        except:
+            raise Exception("decision_tree_comp: Error in populating simDict")
+
         dhashResult = False
         
-        for hashType in ['dhash', 'phash', 'whash', 'nmfhash']:
-            isMatching += int(self.single_hash_comp(hashType, h1, h2))
-            if hashType == 'dhash':
-                dhashResult = self.single_hash_comp(hashType, h1, h2)
+        for hashType, sim in simDict.items():
+            if hashType in ['dhash', 'phash', 'whash']:
+                result = self.hashThreshDict[hashType] >= sim
+                isMatching += int(result)
+            elif hashType == 'nmfhash':
+                result = self.hashThreshDict[hashType] <= sim
+                isMatching += int(result)
+            else:
+                raise Exception("decision_tree_comp: Error in hashThreshDict keys")
+
+            if verbose:
+                print(f"{hashType} was matching? {result}")
 
         if isMatching == thresh:
             return dhashResult
@@ -122,21 +154,21 @@ class Unihasher:
     
     def gen_all_sim(self, imgPath1: str, imgPath2: str):
 
-        dhash1 = Hasher.dhash(imgPath1)
-        dhash2 = Hasher.dhash(imgPath2)
-        dham = Hasher.hamming(dhash1, dhash2)
+        dhash1 = self.hasher.dhash(imgPath1)
+        dhash2 = self.hasher.dhash(imgPath2)
+        dham = self.hasher.hamming(dhash1, dhash2)
 
-        phash1 = Hasher.phash(imgPath1)
-        phash2 = Hasher.phash(imgPath2)
-        pham = Hasher.hamming(phash1, phash2)    
+        phash1 = self.hasher.phash(imgPath1)
+        phash2 = self.hasher.phash(imgPath2)
+        pham = self.hasher.hamming(phash1, phash2)    
 
-        whash1 = Hasher.whash(imgPath1)
-        whash2 = Hasher.whash(imgPath2)
-        wham = Hasher.hamming(whash1, whash2)    
+        whash1 = self.hasher.whash(imgPath1)
+        whash2 = self.hasher.whash(imgPath2)
+        wham = self.hasher.hamming(whash1, whash2)    
 
-        nmfhash1 = Hasher.nmfhash(imgPath1)
-        nmfhash2 = Hasher.nmfhash(imgPath2)
-        nmfcorr = Hasher.pearsonCorr(nmfhash1, nmfhash2)
+        nmfhash1 = self.hasher.nmfhash(imgPath1)
+        nmfhash2 = self.hasher.nmfhash(imgPath2)
+        nmfcorr = self.hasher.pearsonCorr(nmfhash1, nmfhash2)
 
         return {
             'dhash': dham,
@@ -182,11 +214,17 @@ class Unihasher:
             result = currentNode['condition']
             if result:
                 # True
-                currentNode = tree[currentNode['trueNode']]
+                if type(currentNode['trueNode']) == int:
+                    currentNode = tree[currentNode['trueNode']]
+                else:
+                    return currentNode['trueNode']
             else:
                 # False
-                currentNode = tree[currentNode['falseNode']]
-        
+                if type(currentNode['falseNode']) == int:
+                    currentNode = tree[currentNode['falseNode']]
+                else:
+                    return currentNode['falseNode']
+                
         # Result (True/False for matching)
         return currentNode
     

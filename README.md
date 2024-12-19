@@ -18,3 +18,6 @@ nmfhash adapted from Robust Perceptual Image Hashing Based on Ring Partition and
 For more details, please refer to our paper.
 
 Made by: [Akshara Mantha](https://github.com/mynameisashllee), [Ruijia Peng](https://github.com/mango-milkshake), [Tan Siying](https://github.com/Cp-Youfy)
+
+# Usage
+Please refer to `unihasher_demo/unihasher_usage.py` for details on how you may use the library.

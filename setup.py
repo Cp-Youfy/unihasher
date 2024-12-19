@@ -22,7 +22,7 @@ with open(path.join(HERE, 'requirements.txt'), encoding='utf-8') as f:
 # This call to setup() does all the work
 setup(
     name="unihasher",
-    version="0.1.1",
+    version="0.1.2",
     description="Compare image hashes using a unified library",
     long_description=long_description,
     long_description_content_type="text/markdown",
