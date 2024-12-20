@@ -30,6 +30,7 @@ class Unihasher:
             'nmfhash': nmfhashThresh
         }
 
+
     def single_hash(self, hashType:str, imgPath:str, toStr:bool=True):
         '''
         Hashes image with one hash
@@ -46,12 +47,12 @@ class Unihasher:
         
         if hashType == 'phash':
             if toStr:
-                return str(self.hasher.dhash(imgPath, self.imgHashSize))
+                return str(self.hasher.phash(imgPath, self.imgHashSize))
             return self.hasher.phash(imgPath, self.imgHashSize)
 
         if hashType == 'whash':
             if toStr:
-                return str(self.hasher.dhash(imgPath, self.imgHashSize))
+                return str(self.hasher.whash(imgPath, self.imgHashSize))
             return self.hasher.whash(imgPath, self.imgHashSize)
 
         if hashType == 'nmfhash':
@@ -59,6 +60,16 @@ class Unihasher:
         
         raise Exception("single_hash: Invalid hash type provided")
     
+    def gen_all_hashes(self, imgPath:str, toStr:bool=True):
+        '''
+        Returns a tuple of hashes (dhash, phash, whash, nmfhash) of the input image
+        imgPath: Path to image file
+        toStr: (for imagehash dhash | phash | whash) Store as hex string
+        '''
+        if toStr:
+            return (str(self.hasher.dhash(imgPath, self.imgHashSize)), str(self.hasher.dhash(imgPath, self.imgHashSize)), str(self.hasher.whash(imgPath, self.imgHashSize)), self.hasher.nmfhash(imgPath, self.nmfHashSize, self.nmfHashRings))
+        return (self.hasher.dhash(imgPath, self.imgHashSize), self.hasher.phash(imgPath, self.imgHashSize), self.hasher.whash(imgPath, self.imgHashSize), self.hasher.nmfhash(imgPath, self.nmfHashSize, self.nmfHashRings))
+
     def comp_hashes(self, hashType:str, h1:str, h2:str) -> float:
         '''
         Returns similarity metric for the two hashes given hashType
@@ -176,6 +187,25 @@ class Unihasher:
             'nmfhash': nmfcorr
         }
 
+    def gen_all_sim_data(self, hashResults1: tuple, hashResults2: tuple):
+        '''
+        Generates the similarity scores given two hash tuples representing two images
+        hashResults1: tuple of precomputed hashes of the first image in format (dhash, phash, whash, nmfhash)
+        hashResults2: tuple of precomputed hashes of the second image in format (dhash, phash, whash, nmfhash)
+        Returns dictionary of hash similarities that can be passed into test_decision_tree_comp
+        '''
+
+        dham = self.hasher.hamming(hashResults1[0], hashResults2[0])
+        pham = self.hasher.hamming(hashResults1[1], hashResults2[1])
+        wham = self.hasher.hamming(hashResults1[2], hashResults2[2])
+        nmfcorr = self.hasher.hamming(hashResults1[3], hashResults2[3])
+
+        return {
+            'dhash': dham,
+            'phash': pham,
+            'whash': wham,
+            'nmfhash': nmfcorr
+        }
 
     def decision_tree_comp(self, imgPath1:str, imgPath2:str, verbose:bool=False) -> bool:
         # modify this to take the similarity as input -- write separate command to generate all hash variant similarities and optionally write to a csv
@@ -263,7 +293,6 @@ class Unihasher:
         f1_pos = 2*precision_pos*recall_pos/(precision_pos+recall_pos)
         f1_neg = 2*precision_neg*recall_neg/(precision_neg+recall_neg)
 
-        print(f"\n\n--- Results of decision tree test ---")
         print(f"Accuracy: {accuracy}")
         print(f"Precision (Positive): {precision_pos}")
         print(f"Precision (Negative): {precision_neg}")
